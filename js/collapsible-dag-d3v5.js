@@ -411,15 +411,42 @@ class CollapsibleDAG {
       height: maxY - minY,
     };
   }
+
+  getPoints(link) {
+    let sourceX = link.source.x
+    let sourceY = link.source.y
+    let targetX = link.target.x
+    let targetY = link.target.y
+    switch (this.direction) {
+      case 'TB':
+        sourceY += this.options.nodeHeight / 2
+        targetY -= this.options.nodeHeight / 2
+        break
+      case 'BT':
+        sourceY -= this.options.nodeHeight / 2
+        targetY += this.options.nodeHeight / 2
+        break
+      case 'LR':
+        sourceX += this.options.nodeWidth / 2
+        targetX -= this.options.nodeWidth / 2
+        break
+      case 'RL':
+        sourceX -= this.options.nodeWidth / 2
+        targetX += this.options.nodeWidth / 2
+        break
+    }
+
+    return [
+      { x: sourceX, y: sourceY },
+      { x: targetX, y: targetY },
+    ]
+  }
+
   // 渲染边
   renderLinks(dag) {
     try {
       // 获取所有边
       const linkData = dag.links();
-      if (!linkData || linkData.length === 0) {
-        console.warn("没有可用的连接数据");
-        return;
-      }
 
       // 确保每个连接都有points属性，如果没有则创建
       linkData.forEach((link) => {
@@ -429,16 +456,8 @@ class CollapsibleDAG {
           link.points.length < 2
         ) {
           // 如果源或目标节点未定义坐标，使用默认坐标
-          const sourceX = link.source.x !== undefined ? link.source.x : 0;
-          const sourceY = link.source.y !== undefined ? link.source.y : 0;
-          const targetX = link.target.x !== undefined ? link.target.x : 100;
-          const targetY = link.target.y !== undefined ? link.target.y : 100;
-
           // 创建默认的直线连接点
-          link.points = [
-            { x: sourceX, y: sourceY },
-            { x: targetX, y: targetY },
-          ];
+          link.points = this.getPoints(link);
         }
       });
 
@@ -471,6 +490,8 @@ class CollapsibleDAG {
         .classed("link-highlight", (d) =>
           this.highlightedLinks.has(`${d.source.id}-${d.target.id}`)
         )
+        .transition()
+        .duration(this.options.transitionDuration * 2)
         .attr("d", (d) => {
           try {
             // 尝试使用d3曲线生成器
